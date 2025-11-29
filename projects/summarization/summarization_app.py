@@ -6,7 +6,7 @@ import base64
 # -----------------------------
 # Page config
 # -----------------------------
-st.set_page_config(page_title="Document/Text Summarization", layout="wide")
+st.set_page_config(page_title="Document/Content Summarization", layout="wide")
 
 # -----------------------------
 # Session state defaults
@@ -78,6 +78,8 @@ if input_method == "PDF Upload":
         """
         st.markdown("### 📄 PDF Preview")
         st.markdown(pdf_display, unsafe_allow_html=True)
+
+
 
 # Text Input
 if input_method == "Text Input":

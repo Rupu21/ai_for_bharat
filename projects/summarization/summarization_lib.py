@@ -29,7 +29,40 @@ def get_summary(input_text, file_path=None):
     # Add user text (works for both PDF or typed text)
     # ---------------------------------------------
     content_blocks.append({"text": input_text})
+    system_message = [{
+                
+                        "text": """
+        You are an expert summarization system.
 
+        Your job is to produce summaries that are:
+
+        1. Structured
+        2. Consistent every time
+        3. Clear and concise
+        4. Faithful to the source document
+
+        You MUST follow this exact format unless the user explicitly overrides it:
+
+        <short summary in 4–6 sentences>
+
+        ### Key Points
+        - Bullet point 1
+        - Bullet point 2
+        - Bullet point 3
+        - Bullet point 4
+
+        ### Actionable Insights
+        - Insight 1
+        - Insight 2
+        - Insight 3
+
+        Do NOT mention that you are an AI.
+        Do NOT apologize.
+        Never say “here is your summary.”
+        Only output pure content in the required structure.
+                        """
+                    }
+                ]
     doc_message = {
         "role": "user",
         "content": content_blocks
@@ -41,6 +74,7 @@ def get_summary(input_text, file_path=None):
     response = bedrock.converse(
         modelId="us.anthropic.claude-3-7-sonnet-20250219-v1:0",
         messages=[doc_message],
+        system=system_message,
         inferenceConfig={
             "maxTokens": 2000,
             "temperature": 0
