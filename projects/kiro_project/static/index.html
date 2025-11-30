@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Content Summarizer</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="background"></div>
+    
+    <div class="container">
+        <header class="header">
+            <h1>Web Content Summarizer</h1>
+            <p class="subtitle">Extract summaries and key highlights from any website</p>
+        </header>
+
+        <div class="glass-card">
+            <form id="summarize-form" class="form">
+                <div class="form-group">
+                    <label for="url-input">Website URL</label>
+                    <input 
+                        type="text" 
+                        id="url-input" 
+                        name="url" 
+                        placeholder="https://example.com"
+                        required
+                        autocomplete="off"
+                    >
+                </div>
+                <button type="submit" class="btn-submit">
+                    <span class="btn-text">Summarize</span>
+                    <span class="btn-loader" style="display: none;">Processing...</span>
+                </button>
+            </form>
+
+            <div id="error-section" class="error-section" style="display: none;">
+                <div class="error-content">
+                    <h3>Error</h3>
+                    <p id="error-message"></p>
+                </div>
+            </div>
+
+            <div id="results-section" class="results-section" style="display: none;">
+                <div class="result-card">
+                    <h2>Summary</h2>
+                    <p id="summary-text" class="summary-text"></p>
+                </div>
+
+                <div class="result-card">
+                    <h2>Key Highlights</h2>
+                    <ul id="highlights-list" class="highlights-list"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>

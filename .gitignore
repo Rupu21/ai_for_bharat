@@ -3,4 +3,5 @@ data/
 labs/
 sample_images/
 .venv/
+venv/
 __pycache__/
