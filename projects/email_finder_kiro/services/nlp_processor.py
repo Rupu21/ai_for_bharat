@@ -90,6 +90,7 @@ class NLPProcessor:
     def process_emails(self, emails: List[Email]) -> AnalysisResult:
         """
         Analyzes emails using traditional NLP techniques.
+        Uses smart prioritization for large email volumes.
         
         Args:
             emails: List of Email objects to analyze
@@ -106,9 +107,17 @@ class NLPProcessor:
                 timestamp=datetime.now()
             )
         
-        # Calculate importance scores for all emails
+        # For performance, prioritize emails if count is very high
+        # NLP can handle more than LLM since it's local, but still optimize
+        if len(emails) > 200:
+            # Quick pre-filter: score all emails quickly
+            emails_to_analyze = self._prioritize_emails(emails, max_count=200)
+        else:
+            emails_to_analyze = emails
+        
+        # Calculate importance scores for selected emails
         important_emails = []
-        for email in emails:
+        for email in emails_to_analyze:
             importance_score = self._calculate_importance(email)
             
             # Flag emails above threshold as important
@@ -125,8 +134,15 @@ class NLPProcessor:
         # Sort important emails by score (highest first)
         important_emails.sort(key=lambda x: x.importance_score, reverse=True)
         
-        # Generate summary
+        # Limit to top 20 important emails for display
+        important_emails = important_emails[:20]
+        
+        # Generate summary from all emails (fast operation)
         summary = self._generate_summary(emails)
+        
+        # Add note if emails were filtered
+        if len(emails) > len(emails_to_analyze):
+            summary += f" (Analyzed {len(emails_to_analyze)} prioritized emails for importance detection.)"
         
         return AnalysisResult(
             summary=summary,
@@ -135,6 +151,101 @@ class NLPProcessor:
             analysis_method="nlp",
             timestamp=datetime.now()
         )
+    
+    def _prioritize_emails(self, emails: List[Email], max_count: int = 200) -> List[Email]:
+        """
+        Prioritizes emails for analysis when count is very high.
+        Uses quick heuristics to identify likely important emails.
+        
+        Args:
+            emails: Full list of emails
+            max_count: Maximum number to analyze in detail
+            
+        Returns:
+            List[Email]: Prioritized emails for detailed analysis
+        """
+        if len(emails) <= max_count:
+            return emails
+        
+        # Strategy: Recent emails + quick importance scoring
+        recent_count = min(100, max_count // 2)
+        selected_emails = emails[:recent_count]
+        remaining_slots = max_count - recent_count
+        
+        if remaining_slots <= 0:
+            return selected_emails
+        
+        # Quick score remaining emails (faster than full analysis)
+        remaining_emails = emails[recent_count:]
+        scored_emails = []
+        
+        for email in remaining_emails:
+            score = 0
+            text_lower = f"{email.subject} {email.snippet}".lower()  # Use snippet for speed
+            
+            # Quick keyword check (most important indicators)
+            urgent_keywords = ['urgent', 'deadline', 'asap', 'important', 'critical']
+            for keyword in urgent_keywords:
+                if keyword in text_lower:
+                    score += 2
+                    break  # One match is enough
+            
+            # Check for action words
+            action_keywords = ['required', 'respond', 'reply', 'confirm', 'approve']
+            for keyword in action_keywords:
+                if keyword in text_lower:
+                    score += 1
+                    break
+            
+            # Check sender domain (work emails)
+            personal_domains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com']
+            if not any(domain in email.sender_email.lower() for domain in personal_domains):
+                score += 2
+            
+            scored_emails.append((score, email))
+        
+        # Sort by score and take top emails
+        scored_emails.sort(key=lambda x: x[0], reverse=True)
+        selected_emails.extend([email for score, email in scored_emails[:remaining_slots]])
+        
+        return selected_emails
+    
+    def _extract_email_preview(self, email: Email) -> str:
+        """
+        Extracts the most relevant preview from an email for faster processing.
+        Uses subject + first 2-3 lines of body.
+        
+        Args:
+            email: Email object
+            
+        Returns:
+            str: Concise preview of email content
+        """
+        # Start with snippet if available (Gmail's smart preview)
+        if email.snippet and len(email.snippet) > 50:
+            preview = email.snippet[:300]
+        elif email.body:
+            # Extract first few lines of body
+            lines = email.body.split('\n')
+            # Filter out empty lines
+            non_empty_lines = [line.strip() for line in lines if line.strip()]
+            
+            # Take first 2-3 meaningful lines
+            preview_lines = non_empty_lines[:3]
+            preview = ' '.join(preview_lines)
+            
+            # Limit to ~300 chars
+            if len(preview) > 300:
+                preview = preview[:300]
+        else:
+            preview = ""
+        
+        # Clean up common email artifacts
+        preview = preview.replace('\r', ' ').replace('\t', ' ')
+        # Remove multiple spaces
+        preview = ' '.join(preview.split())
+        
+        return preview
     
     def _extract_keywords(self, text: str) -> List[str]:
         """
@@ -174,6 +285,7 @@ class NLPProcessor:
     def _calculate_importance(self, email: Email) -> float:
         """
         Calculates importance score for an email using heuristic rules.
+        Uses optimized preview extraction for faster processing.
         
         The score is based on:
         - Presence of importance keywords (urgent, deadline, etc.)
@@ -188,8 +300,9 @@ class NLPProcessor:
         """
         score = 0.0
         
-        # Combine subject and body for analysis
-        full_text = f"{email.subject} {email.body}".lower()
+        # Use preview instead of full body for faster processing
+        preview = self._extract_email_preview(email)
+        full_text = f"{email.subject} {preview}".lower()
         
         # 1. Check for importance keywords (up to 0.5 points)
         keyword_matches = 0
@@ -218,8 +331,8 @@ class NLPProcessor:
             score += 0.15
         
         # 3. Email length factor (up to 0.2 points)
-        # Longer emails might contain more substantial content
-        body_length = len(email.body)
+        # Use original body length for this check
+        body_length = len(email.body) if email.body else len(email.snippet) if email.snippet else 0
         
         if body_length > 1000:
             score += 0.2
@@ -236,6 +349,7 @@ class NLPProcessor:
     def _generate_importance_reason(self, email: Email, score: float) -> str:
         """
         Generates a human-readable reason for why an email is important.
+        Uses preview for faster processing.
         
         Args:
             email: Email object
@@ -246,8 +360,9 @@ class NLPProcessor:
         """
         reasons = []
         
-        # Check for keywords
-        full_text = f"{email.subject} {email.body}".lower()
+        # Check for keywords using preview
+        preview = self._extract_email_preview(email)
+        full_text = f"{email.subject} {preview}".lower()
         found_keywords = [kw for kw in self.IMPORTANCE_KEYWORDS if kw in full_text]
         
         if found_keywords:
@@ -260,8 +375,9 @@ class NLPProcessor:
         if is_work_email:
             reasons.append("From work-related domain")
         
-        # Check length
-        if len(email.body) > 1000:
+        # Check length (use original body length)
+        body_length = len(email.body) if email.body else len(email.snippet) if email.snippet else 0
+        if body_length > 1000:
             reasons.append("Substantial content length")
         
         if not reasons:
@@ -289,10 +405,11 @@ class NLPProcessor:
         
         total_count = len(emails)
         
-        # Extract all keywords from all emails
+        # Extract all keywords from all emails (using preview for speed)
         all_keywords = []
         for email in emails:
-            text = f"{email.subject} {email.body}"
+            preview = self._extract_email_preview(email)
+            text = f"{email.subject} {preview}"
             keywords = self._extract_keywords(text)
             all_keywords.extend(keywords)
         

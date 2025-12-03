@@ -66,9 +66,75 @@ class LLMProcessor:
         else:
             self.bedrock_client = bedrock_client
     
+    def _select_emails_smartly(self, emails: List[Email], max_count: int = 50) -> List[Email]:
+        """
+        Intelligently selects emails to analyze when count exceeds limit.
+        
+        Strategy:
+        1. Always include most recent 30 emails (likely most relevant)
+        2. Scan remaining emails for importance indicators
+        3. Fill remaining slots with potentially important emails
+        
+        Args:
+            emails: Full list of emails
+            max_count: Maximum number of emails to select
+            
+        Returns:
+            List[Email]: Selected emails for analysis
+        """
+        if len(emails) <= max_count:
+            return emails
+        
+        # Keywords that indicate importance
+        importance_keywords = {
+            'urgent', 'important', 'deadline', 'asap', 'critical', 'priority',
+            'action required', 'time sensitive', 'immediate', 'emergency',
+            'attention', 'required', 'respond', 'reply', 'confirm', 'approval',
+            'meeting', 'interview', 'offer', 'contract', 'invoice', 'payment'
+        }
+        
+        # 1. Always take most recent 30 emails
+        recent_count = min(30, max_count)
+        selected_emails = emails[:recent_count]
+        remaining_slots = max_count - recent_count
+        
+        if remaining_slots <= 0:
+            return selected_emails
+        
+        # 2. Score remaining emails for importance
+        remaining_emails = emails[recent_count:]
+        scored_emails = []
+        
+        for email in remaining_emails:
+            score = 0
+            text = f"{email.subject} {email.body}".lower()
+            
+            # Check for importance keywords
+            for keyword in importance_keywords:
+                if keyword in text:
+                    score += 1
+            
+            # Boost score for work domains
+            if not any(domain in email.sender_email.lower() 
+                      for domain in ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com']):
+                score += 2
+            
+            # Boost for longer emails (more substantial)
+            if len(email.body) > 1000:
+                score += 1
+            
+            scored_emails.append((score, email))
+        
+        # 3. Sort by score and take top emails
+        scored_emails.sort(key=lambda x: x[0], reverse=True)
+        selected_emails.extend([email for score, email in scored_emails[:remaining_slots]])
+        
+        return selected_emails
+    
     def process_emails(self, emails: List[Email]) -> AnalysisResult:
         """
         Analyzes emails using Claude LLM via AWS Bedrock.
+        Uses smart selection to prioritize important emails when count is high.
         
         Args:
             emails: List of Email objects to analyze
@@ -88,15 +154,26 @@ class LLMProcessor:
                 timestamp=datetime.now()
             )
         
+        # Select emails smartly if too many
+        emails_to_analyze = self._select_emails_smartly(emails, max_count=50)
+        
         # Format prompt for Claude
-        prompt = self._format_prompt(emails)
+        prompt = self._format_prompt(emails_to_analyze)
         
         # Call AWS Bedrock
         try:
             response = self._call_bedrock(prompt)
             
             # Parse response into structured result
-            analysis_result = self._parse_response(response, emails)
+            # Pass original emails list for proper indexing
+            analysis_result = self._parse_response(response, emails_to_analyze)
+            
+            # Update total count to reflect all emails
+            analysis_result.total_unread = len(emails)
+            
+            # Add note to summary if emails were filtered
+            if len(emails) > len(emails_to_analyze):
+                analysis_result.summary += f" (Analyzed {len(emails_to_analyze)} prioritized emails out of {len(emails)} total.)"
             
             return analysis_result
             
@@ -105,9 +182,47 @@ class LLMProcessor:
             error_message = f"AWS Bedrock API error: {str(e)}"
             raise RuntimeError(error_message) from e
     
+    def _extract_email_preview(self, email: Email) -> str:
+        """
+        Extracts the most relevant preview from an email.
+        Prioritizes: Subject + First 2-3 lines of body.
+        
+        Args:
+            email: Email object
+            
+        Returns:
+            str: Concise preview of email content
+        """
+        # Start with snippet if available (Gmail's smart preview)
+        if email.snippet and len(email.snippet) > 50:
+            preview = email.snippet[:300]
+        elif email.body:
+            # Extract first few lines of body
+            lines = email.body.split('\n')
+            # Filter out empty lines
+            non_empty_lines = [line.strip() for line in lines if line.strip()]
+            
+            # Take first 2-3 meaningful lines
+            preview_lines = non_empty_lines[:3]
+            preview = ' '.join(preview_lines)
+            
+            # Limit to ~300 chars
+            if len(preview) > 300:
+                preview = preview[:300]
+        else:
+            preview = "(No content available)"
+        
+        # Clean up common email artifacts
+        preview = preview.replace('\r', ' ').replace('\t', ' ')
+        # Remove multiple spaces
+        preview = ' '.join(preview.split())
+        
+        return preview
+    
     def _format_prompt(self, emails: List[Email]) -> str:
         """
         Creates a prompt for Claude with email list and analysis instructions.
+        Uses smart batching to prioritize recent and potentially important emails.
         
         Args:
             emails: List of Email objects
@@ -115,36 +230,46 @@ class LLMProcessor:
         Returns:
             str: Formatted prompt for Claude
         """
-        # Limit to most recent 50 emails for performance
-        emails_to_process = emails[:50] if len(emails) > 50 else emails
+        # Smart email selection strategy
+        if len(emails) <= 50:
+            # Process all emails if within limit
+            emails_to_process = emails
+        else:
+            # Use hybrid approach: recent + keyword-filtered
+            emails_to_process = self._select_emails_smartly(emails, max_count=50)
         
-        # Build email list for prompt with optimized length
+        # Build email list for prompt with optimized content
         email_list = []
         for idx, email in enumerate(emails_to_process, 1):
-            # Truncate body to 500 chars for faster processing
-            body_preview = email.body[:500] if email.body else email.snippet[:200] if email.snippet else ''
+            # Extract first 2-3 lines of body (most important info)
+            body_preview = self._extract_email_preview(email)
+            
             email_text = f"""
 Email {idx}:
 Subject: {email.subject}
 From: {email.sender} <{email.sender_email}>
 Date: {email.timestamp.strftime('%Y-%m-%d %H:%M:%S')}
-Body: {body_preview}{'...' if len(email.body) > 500 else ''}
+Preview: {body_preview}
 """
             email_list.append(email_text.strip())
         
         emails_text = "\n\n".join(email_list)
         
         # Add note if emails were limited
-        limit_note = f"\n\nNote: Showing {len(emails_to_process)} most recent emails out of {len(emails)} total." if len(emails) > 50 else ""
+        limit_note = ""
+        if len(emails) > 50:
+            limit_note = f"\n\nNote: Analyzed {len(emails_to_process)} prioritized emails out of {len(emails)} total (most recent + potentially important)."
         
         # Create comprehensive prompt
-        prompt = f"""You are an email analysis assistant. Analyze the following {len(emails_to_process)} unread emails and provide:
+        prompt = f"""You are an email analysis assistant. Analyze the following {len(emails_to_process)} unread emails.
 
-1. A concise summary of all emails (2-3 sentences)
-2. Identify which emails are important and need attention (max 10)
-3. For each important email, provide an importance score (0.0-1.0) and brief reason
+Each email shows: Subject, Sender, Date, and Preview (first 2-3 lines of content).
 
 {emails_text}{limit_note}
+
+Provide:
+1. A concise summary of all emails (2-3 sentences)
+2. Identify important emails (max 10) with importance score (0.0-1.0) and reason
 
 Respond in JSON format:
 {{
@@ -159,10 +284,11 @@ Respond in JSON format:
 }}
 
 Consider emails important if they:
-- Contain urgent keywords (deadline, urgent, important, ASAP)
-- Require action or response
+- Contain urgent keywords (deadline, urgent, important, ASAP, critical)
+- Require action or response (reply, confirm, approve, review)
 - Are from work/professional contacts
-- Contain time-sensitive information
+- Contain time-sensitive information (meeting, interview, deadline)
+- Have significant business implications (contract, invoice, offer)
 
 Respond only with valid JSON."""
         
