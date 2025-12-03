@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Insights Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+        }
+
+        /* Glassmorphic styling */
+        .glass {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+
+        .header {
+            padding: 30px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            color: white;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .header p {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 1.1em;
+        }
+
+        .auth-status {
+            padding: 15px 30px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .auth-status span {
+            color: white;
+            font-weight: 500;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.25);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.35);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary {
+            background: rgba(102, 126, 234, 0.8);
+            border: 1px solid rgba(102, 126, 234, 0.9);
+        }
+
+        .btn-primary:hover {
+            background: rgba(102, 126, 234, 0.9);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .form-section {
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            color: white;
+            font-weight: 600;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .form-group input[type="number"] {
+            width: 100%;
+            padding: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 1em;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input[type="number"]:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.25);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .form-group input[type="number"]::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .form-select:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.25);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .form-select option {
+            background: #667eea;
+            color: white;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 20px;
+        }
+
+        .radio-option {
+            flex: 1;
+            position: relative;
+        }
+
+        .radio-option input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+        }
+
+        .radio-option label {
+            display: block;
+            padding: 15px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .radio-option input[type="radio"]:checked + label {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.6);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .radio-option label:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .analyze-btn-container {
+            text-align: center;
+        }
+
+        .analyze-btn {
+            padding: 15px 40px;
+            font-size: 1.2em;
+        }
+
+        /* Loading spinner */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 30px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading p {
+            color: white;
+            font-size: 1.1em;
+        }
+
+        /* Progress steps styling */
+        #progressSteps {
+            text-align: left;
+            max-width: 400px;
+            margin: 20px auto 0;
+        }
+
+        #progressSteps > div {
+            padding: 10px 15px;
+            margin: 8px 0;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            border-left: 3px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        #progressSteps > div.completed {
+            background: rgba(144, 238, 144, 0.2);
+            border-left-color: rgba(144, 238, 144, 0.8);
+        }
+
+        #emailCount {
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(102, 126, 234, 0.3);
+            border-radius: 10px;
+            font-size: 1.2em;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease;
+        }
+
+        /* Error message */
+        .error-message {
+            display: none;
+            padding: 20px;
+            margin-bottom: 20px;
+            background: rgba(220, 53, 69, 0.3);
+            border: 1px solid rgba(220, 53, 69, 0.5);
+            border-radius: 10px;
+            color: white;
+        }
+
+        .error-message.active {
+            display: block;
+        }
+
+        .error-message strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        /* Results section */
+        .results-section {
+            display: none;
+            padding: 30px;
+        }
+
+        .results-section.active {
+            display: block;
+        }
+
+        .results-header {
+            color: white;
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .summary-panel {
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            margin-bottom: 25px;
+        }
+
+        .summary-panel h3 {
+            color: white;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .summary-panel p {
+            color: rgba(255, 255, 255, 0.95);
+            line-height: 1.6;
+            font-size: 1.05em;
+        }
+
+        .important-emails {
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .important-emails h3 {
+            color: white;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+
+        .email-card {
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .email-card:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateX(5px);
+        }
+
+        .email-card:last-child {
+            margin-bottom: 0;
+        }
+
+        .email-subject {
+            color: white;
+            font-size: 1.2em;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .email-sender {
+            color: rgba(255, 255, 255, 0.85);
+            margin-bottom: 8px;
+        }
+
+        .email-snippet {
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.5;
+            margin-bottom: 10px;
+        }
+
+        .email-reason {
+            color: rgba(255, 255, 255, 0.9);
+            font-style: italic;
+            font-size: 0.95em;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            border-left: 3px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .email-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .importance-score {
+            background: rgba(102, 126, 234, 0.6);
+            padding: 5px 12px;
+            border-radius: 20px;
+            color: white;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        .email-timestamp {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9em;
+        }
+
+        .no-important-emails {
+            color: rgba(255, 255, 255, 0.8);
+            text-align: center;
+            padding: 30px;
+            font-size: 1.1em;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 25px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            color: white;
+            font-size: 2em;
+            font-weight: 700;
+            display: block;
+        }
+
+        .stat-label {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="glass header">
+            <h1>📧 Email Insights Dashboard</h1>
+            <p>Intelligent analysis of your unread Gmail messages</p>
+        </div>
+
+        <!-- Authentication Status -->
+        <div class="glass auth-status" id="authStatus">
+            <span id="authStatusText">Checking authentication...</span>
+            <button class="btn" id="loginBtn" style="display: none;">Login with Gmail</button>
+        </div>
+
+        <!-- Error Message -->
+        <div class="glass error-message" id="errorMessage">
+            <strong>Error</strong>
+            <p id="errorText"></p>
+        </div>
+
+        <!-- Analysis Form -->
+        <div class="glass form-section" id="analysisForm" style="display: none;">
+            <form id="emailAnalysisForm">
+                <div class="form-group">
+                    <label for="daysBack">Time Range</label>
+                    <select 
+                        id="daysBack" 
+                        name="daysBack" 
+                        class="form-select"
+                        required
+                    >
+                        <option value="">Select time range...</option>
+                        <option value="1">Last 24 hours</option>
+                        <option value="3">Last 3 days</option>
+                        <option value="7" selected>Last week</option>
+                        <option value="14">Last 2 weeks</option>
+                        <option value="30">Last month</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Analysis Method</label>
+                    <div class="radio-group">
+                        <div class="radio-option">
+                            <input type="radio" id="methodLLM" name="method" value="llm" required>
+                            <label for="methodLLM">🤖 LLM Analysis<br><small>AI-powered insights</small></label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="radio" id="methodNLP" name="method" value="nlp" required>
+                            <label for="methodNLP">📊 NLP Analysis<br><small>Fast traditional processing</small></label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="analyze-btn-container">
+                    <button type="submit" class="btn btn-primary analyze-btn">Analyze Emails</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div class="glass loading" id="loadingSpinner">
+            <div class="spinner"></div>
+            <p id="loadingMessage">Analyzing your emails...</p>
+            <div id="progressInfo" style="margin-top: 15px; color: rgba(255, 255, 255, 0.9); font-size: 1.1em;">
+                <div id="emailCount" style="display: none;">
+                    <strong>📧 Emails retrieved: <span id="emailCountValue">0</span></strong>
+                </div>
+                <div id="progressSteps" style="margin-top: 10px; font-size: 0.95em; color: rgba(255, 255, 255, 0.8);">
+                    <div id="step1">⏳ Connecting to Gmail...</div>
+                    <div id="step2" style="display: none;">⏳ Retrieving emails...</div>
+                    <div id="step3" style="display: none;">⏳ Analyzing content...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div class="glass results-section" id="resultsSection">
+            <h2 class="results-header">Analysis Results</h2>
+
+            <!-- Stats -->
+            <div class="stats">
+                <div class="stat-item">
+                    <span class="stat-value" id="totalUnread">0</span>
+                    <span class="stat-label">Total Unread</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value" id="importantCount">0</span>
+                    <span class="stat-label">Important Emails</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value" id="analysisMethod">-</span>
+                    <span class="stat-label">Method Used</span>
+                </div>
+            </div>
+
+            <!-- Summary Panel -->
+            <div class="summary-panel">
+                <h3>📝 Summary</h3>
+                <p id="summaryText">No summary available</p>
+            </div>
+
+            <!-- Important Emails -->
+            <div class="important-emails">
+                <h3>⭐ Important Emails</h3>
+                <div id="importantEmailsList">
+                    <p class="no-important-emails">No important emails identified</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State management
+        let isAuthenticated = false;
+
+        // Check authentication status on page load
+        async function checkAuthStatus() {
+            try {
+                const response = await fetch('/auth/status');
+                const data = await response.json();
+                isAuthenticated = data.authenticated;
+                
+                updateAuthUI();
+            } catch (error) {
+                console.error('Error checking auth status:', error);
+                showError('Failed to check authentication status');
+            }
+        }
+
+        // Update authentication UI
+        function updateAuthUI() {
+            const authStatusText = document.getElementById('authStatusText');
+            const loginBtn = document.getElementById('loginBtn');
+            const analysisForm = document.getElementById('analysisForm');
+
+            if (isAuthenticated) {
+                authStatusText.textContent = '✓ Authenticated with Gmail';
+                loginBtn.style.display = 'none';
+                analysisForm.style.display = 'block';
+            } else {
+                authStatusText.textContent = '⚠ Not authenticated';
+                loginBtn.style.display = 'block';
+                analysisForm.style.display = 'none';
+            }
+        }
+
+        // Handle login button click
+        document.getElementById('loginBtn').addEventListener('click', () => {
+            window.location.href = '/auth/login';
+        });
+
+        // Handle form submission with SSE
+        document.getElementById('emailAnalysisForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            // Hide previous results and errors
+            hideError();
+            hideResults();
+
+            // Get form values
+            const daysBack = parseInt(document.getElementById('daysBack').value);
+            const method = document.querySelector('input[name="method"]:checked')?.value;
+
+            // Validate inputs
+            if (!daysBack || daysBack < 1) {
+                showError('Please select a time range');
+                return;
+            }
+
+            if (!method) {
+                showError('Please select an analysis method');
+                return;
+            }
+
+            // Show loading spinner
+            showLoading();
+
+            try {
+                // Use fetch to POST and get streaming response
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        days_back: daysBack,
+                        method: method
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Analysis request failed');
+                }
+
+                // Read the stream
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    
+                    if (done) break;
+                    
+                    // Append to buffer to handle partial chunks
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    
+                    // Keep the last incomplete line in buffer
+                    buffer = lines.pop() || '';
+                    
+                    for (const line of lines) {
+                        // Skip empty lines and ping comments
+                        if (!line.trim() || line.startsWith(':')) {
+                            continue;
+                        }
+                        
+                        if (line.startsWith('data: ')) {
+                            try {
+                                const jsonStr = line.substring(6).trim();
+                                if (jsonStr) {
+                                    const data = JSON.parse(jsonStr);
+                                    handleProgressUpdate(data);
+                                }
+                            } catch (parseError) {
+                                console.error('JSON parse error:', parseError);
+                                console.error('Problematic line:', line.substring(0, 200));
+                                // Continue processing other lines
+                            }
+                        }
+                    }
+                }
+                
+                // Process any remaining data in buffer
+                if (buffer.trim() && !buffer.startsWith(':')) {
+                    if (buffer.startsWith('data: ')) {
+                        try {
+                            const jsonStr = buffer.substring(6).trim();
+                            if (jsonStr) {
+                                const data = JSON.parse(jsonStr);
+                                handleProgressUpdate(data);
+                            }
+                        } catch (parseError) {
+                            console.error('Final buffer parse error:', parseError);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error analyzing emails:', error);
+                showError(error.message || 'Failed to analyze emails. Please try again.');
+                hideLoading();
+            }
+        });
+
+        // Handle progress updates from SSE
+        function handleProgressUpdate(data) {
+            const loadingMessage = document.getElementById('loadingMessage');
+            const step1 = document.getElementById('step1');
+            const step2 = document.getElementById('step2');
+            const step3 = document.getElementById('step3');
+            const emailCount = document.getElementById('emailCount');
+            const emailCountValue = document.getElementById('emailCountValue');
+
+            switch (data.step) {
+                case 'connecting':
+                    step1.textContent = '⏳ ' + data.message;
+                    step1.style.display = 'block';
+                    step1.classList.add('fade-in');
+                    loadingMessage.textContent = data.message;
+                    break;
+                    
+                case 'retrieving':
+                    step1.textContent = '✓ Connected to Gmail';
+                    step1.classList.add('completed');
+                    step2.textContent = '⏳ ' + data.message;
+                    step2.style.display = 'block';
+                    step2.classList.add('fade-in');
+                    loadingMessage.textContent = data.message;
+                    break;
+                    
+                case 'retrieved':
+                    step2.textContent = '✓ ' + data.message;
+                    step2.classList.add('completed');
+                    if (data.count !== undefined) {
+                        emailCountValue.textContent = data.count;
+                        emailCount.style.display = 'block';
+                        emailCount.classList.add('fade-in');
+                        loadingMessage.textContent = `Found ${data.count} unread email${data.count !== 1 ? 's' : ''}`;
+                    }
+                    break;
+                    
+                case 'analyzing':
+                    step3.textContent = '⏳ ' + data.message;
+                    step3.style.display = 'block';
+                    step3.classList.add('fade-in');
+                    loadingMessage.textContent = data.message;
+                    break;
+                    
+                case 'complete':
+                    step3.textContent = '✓ ' + data.message;
+                    step3.classList.add('completed');
+                    loadingMessage.textContent = '🎉 Analysis complete!';
+                    
+                    // Display results after a brief moment
+                    setTimeout(() => {
+                        hideLoading();
+                        displayResults(data.result);
+                    }, 800);
+                    break;
+                    
+                case 'error':
+                    hideLoading();
+                    showError(data.detail || data.message || 'An error occurred');
+                    break;
+            }
+        }
+
+        // Display results
+        function displayResults(result) {
+            // Update stats
+            document.getElementById('totalUnread').textContent = result.total_unread || 0;
+            document.getElementById('importantCount').textContent = result.important_emails?.length || 0;
+            document.getElementById('analysisMethod').textContent = (result.analysis_method || 'unknown').toUpperCase();
+
+            // Update summary
+            document.getElementById('summaryText').textContent = result.summary || 'No summary available';
+
+            // Update important emails list
+            const emailsList = document.getElementById('importantEmailsList');
+            emailsList.innerHTML = '';
+
+            if (result.important_emails && result.important_emails.length > 0) {
+                result.important_emails.forEach(item => {
+                    const email = item.email;
+                    const emailCard = document.createElement('div');
+                    emailCard.className = 'email-card';
+                    
+                    const timestamp = email.timestamp ? new Date(email.timestamp).toLocaleString() : 'Unknown date';
+                    
+                    emailCard.innerHTML = `
+                        <div class="email-subject">${escapeHtml(email.subject || 'No subject')}</div>
+                        <div class="email-sender">From: ${escapeHtml(email.sender || 'Unknown')} ${email.sender_email ? `&lt;${escapeHtml(email.sender_email)}&gt;` : ''}</div>
+                        <div class="email-snippet">${escapeHtml(email.snippet || email.body?.substring(0, 150) || 'No preview available')}${(email.body?.length > 150) ? '...' : ''}</div>
+                        ${item.reason ? `<div class="email-reason">💡 ${escapeHtml(item.reason)}</div>` : ''}
+                        <div class="email-meta">
+                            <span class="importance-score">Score: ${(item.importance_score || 0).toFixed(2)}</span>
+                            <span class="email-timestamp">${timestamp}</span>
+                        </div>
+                    `;
+                    
+                    emailsList.appendChild(emailCard);
+                });
+            } else {
+                emailsList.innerHTML = '<p class="no-important-emails">No important emails identified</p>';
+            }
+
+            // Show results section
+            showResults();
+        }
+
+        // Utility functions
+        function showLoading() {
+            // Reset progress indicators
+            document.getElementById('emailCount').style.display = 'none';
+            document.getElementById('emailCountValue').textContent = '0';
+            document.getElementById('step1').style.display = 'block';
+            document.getElementById('step2').style.display = 'none';
+            document.getElementById('step3').style.display = 'none';
+            
+            document.getElementById('loadingSpinner').classList.add('active');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingSpinner').classList.remove('active');
+        }
+
+        function updateProgress(step) {
+            const steps = {
+                'step1': { text: '✓ Connected to Gmail', next: 'step2' },
+                'step2': { text: '✓ Emails retrieved', next: 'step3' },
+                'step3': { text: '✓ Analysis complete', next: null }
+            };
+
+            const currentStep = document.getElementById(step);
+            if (currentStep && steps[step]) {
+                currentStep.textContent = steps[step].text;
+                currentStep.style.color = 'rgba(144, 238, 144, 0.9)';
+                
+                if (steps[step].next) {
+                    document.getElementById(steps[step].next).style.display = 'block';
+                }
+            }
+        }
+
+        function showError(message) {
+            document.getElementById('errorText').textContent = message;
+            document.getElementById('errorMessage').classList.add('active');
+        }
+
+        function hideError() {
+            document.getElementById('errorMessage').classList.remove('active');
+        }
+
+        function showResults() {
+            document.getElementById('resultsSection').classList.add('active');
+        }
+
+        function hideResults() {
+            document.getElementById('resultsSection').classList.remove('active');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Initialize on page load
+        checkAuthStatus();
+    </script>
+</body>
+</html>
