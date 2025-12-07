@@ -5,3 +5,6 @@ sample_images/
 .venv/
 venv/
 __pycache__/
+rag-workshop-amazon-bedrock-knowledge-bases/
+*.pyc
+.ipynb_checkpoints/
