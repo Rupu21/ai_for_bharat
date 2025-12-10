@@ -1,0 +1,22 @@
+{
+  "mcpServers": {
+    "traffic-data": {
+      "command": "python",
+      "args": ["-m", "mcp_servers.traffic_server"],
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}"
+      },
+      "disabled": false,
+      "autoApprove": []
+    },
+    "restaurant-data": {
+      "command": "python",
+      "args": ["-m", "mcp_servers.restaurant_server"],
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}"
+      },
+      "disabled": false,
+      "autoApprove": []
+    }
+  }
+}

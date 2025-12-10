@@ -1,0 +1,1 @@
+"""Traffic-Restaurant Dashboard application."""
