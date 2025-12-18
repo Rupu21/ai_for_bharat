@@ -1,0 +1,10 @@
+# Core game dependencies
+pygame>=2.5.0
+
+# AI dependencies
+transformers>=4.30.0
+torch>=2.0.0
+
+# Testing
+hypothesis>=6.75.0
+pytest>=7.4.0
