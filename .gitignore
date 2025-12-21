@@ -8,3 +8,4 @@ __pycache__/
 rag-workshop-amazon-bedrock-knowledge-bases/
 *.pyc
 .ipynb_checkpoints/
+agentic-ai/

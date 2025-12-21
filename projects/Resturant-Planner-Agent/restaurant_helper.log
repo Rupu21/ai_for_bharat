@@ -1,0 +1,17 @@
+2025-12-21 18:25:14,505 - INFO - Deployment prerequisites script executed successfully.
+2025-12-21 18:25:14,711 - INFO - DynamoDB table: restaurant-assistant-bookings
+2025-12-21 18:25:14,711 - INFO - Knowledge Base Id: KEITIXICYQ
+2025-12-21 18:25:14,711 - ERROR - Error initializing agent: name 'get_booking_details' is not defined
+2025-12-21 18:27:19,239 - INFO - DynamoDB table: restaurant-assistant-bookings
+2025-12-21 18:27:19,239 - INFO - Knowledge Base Id: KEITIXICYQ
+2025-12-21 18:27:19,242 - INFO - Agent initialized successfully.
+2025-12-21 18:27:19,242 - INFO - Chat with Restaurant Helper! Type 'exit' to quit.
+2025-12-21 18:27:37,023 - INFO - DynamoDB table: restaurant-assistant-bookings
+2025-12-21 18:27:37,023 - INFO - Knowledge Base Id: KEITIXICYQ
+2025-12-21 18:27:37,024 - INFO - Agent initialized successfully.
+2025-12-21 18:27:37,025 - INFO - Chat with Restaurant Helper! Type 'exit' to quit.
+2025-12-21 18:30:38,841 - INFO - Exiting conversation.
+2025-12-21 18:30:38,890 - INFO - Retrieved 1 items from table 'restaurant-assistant-bookings'.
+2025-12-21 18:30:38,900 - INFO - Items retrieved from DynamoDB:
+  num_guests restaurant_name        date   hour booking_id name
+0          6    Agave & Salt  2025-12-21  20:00   72458bfb  Rup
